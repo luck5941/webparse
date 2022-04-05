@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
+from warnings import warn
 
-from .. import errors
 from . import htmltools
 from .node import Node
 from .tree import Tree
@@ -36,10 +36,10 @@ class HtmlTree(Tree):
         if not isinstance(value, bool):
             raise TypeError("skip_blacklist must be boolean")
         if value:
-            errors.wprint(
-                "Warning: This options could skip other open tag " +
+            warn(
+                "\03393mWarning: This options could skip other open tag " +
                 "equals of the current tag if they are inside. This option " +
-                "is not recommended")
+                "is not recommended\033[0m")
         self._skip_blacklist = value
 
     def _generatetree(self, node, text):

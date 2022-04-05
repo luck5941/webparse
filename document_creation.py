@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+from warnings import warn
 from .html_tree import HtmlTree
 from .node import Node
-from .. import errors
 
 
 def tree2text(html_tree: HtmlTree):
@@ -12,7 +12,7 @@ def tree2text(html_tree: HtmlTree):
     text = ""
     for node in nodes:
         if node.content == "" and len(node.childs) == 0:
-            errors.wprint(f"The tree was not clean. Tag {node.tag}")
+            warn(f"\033[93mThe tree was not clean. Tag {node.tag}\033[0m")
         if node.tag == last_tag:
             text = f"{text}\n"
         if node.content != "":

@@ -1,0 +1,18 @@
+[MASTER]
+disable=
+	C0114,C0115,C0116, #docstring
+	I1101, # cant import some modules from libraries
+	C0415, # can import outside toplevel
+	W1406, # The u prefix for strings is no longer necessary in Python
+	R0801,
+	W0221
+good-names=i,
+           j,
+           k,
+           f,
+           e,
+           ex,
+           Run,
+           _
+[DESIGN]
+max-attributes=15

@@ -1,18 +1,19 @@
+#!/usr/bin/env python
+
 import sys
 import os
 import urllib.request
 import urllib.error
 import urllib.parse
-import pathlib
 import json
 import datetime
 
+from .appdirectory import UserDirs
 from . import html_tree
 from . import document_creation
-from ..mongo_driver import MongoDriver
 
 
-def makerequest(url, cachefile):
+def makerequest(url):
     fake_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -24,35 +25,50 @@ def makerequest(url, cachefile):
         text = response.decode("UTF-8")
     except UnicodeDecodeError:
         text = response.decode("latin-1")
-    with open(cachefile, "r+", encoding="UTF-8") as webcontent:
-        cachedata = webcontent.read()
-        if len(cachedata) == 0:
-            cachedata = "{}"
-        jsoncontent = json.loads(cachedata)
-        jsoncontent[url] = text
-        webcontent.seek(0)
-        webcontent.write(json.dumps(jsoncontent))
-        return text
+    return text
 
 
-def main(url, use_cache, keyword = "officialDocuments"):
-    home = str(pathlib.Path.home())
-    cache = f"{home}/.cache/webscrapper"
-    filepath = f"{cache}/webscrapper.cache"
-    if not os.path.isdir(cache):
-        os.mkdir(cache)
-
-    if os.path.isfile(filepath) and use_cache:
-        with open(filepath, "r", encoding="UTF-8") as webcontent:
-            cachedata = webcontent.read()
-            if len(cachedata) == 0:
-                cachedata = "{}"
-            jsoncontent = json.loads(cachedata)
-            text = jsoncontent.get("url", "")
-            if len(text) == 0:
-                text = makerequest(url, filepath)
+def preparefile(filepath, get_inode = False):
+    if os.path.isfile(filepath):
+        webcontent = open(filepath, "r+", encoding="UTF-8")
     else:
-        text = makerequest(url, filepath)
+        webcontent = open(filepath, "w+", encoding="UTF-8")
+
+    webcontent.seek(0)
+    cachedata = webcontent.read()
+    if len(cachedata) == 0:
+        cachedata = "{}"
+    jsoncontent = json.loads(cachedata)
+    if not get_inode:
+        webcontent.close()
+        return jsoncontent
+    return jsoncontent, webcontent
+
+def storecache(jsonobject,key, value, inode):
+    jsonobject[key] = value
+    inode.seek(0)
+    inode.write(json.dumps(jsonobject))
+    inode.close()
+
+def main(url, use_cache):
+    appname = os.getenv("appname", "webscrapper")
+    version = os.getenv("version", "1.0")
+    userdirs = UserDirs(appname, version)
+    cachedir = userdirs.usercachedir
+    filepath = os.path.join(cachedir, "webscrapper.cache")
+    if not os.path.isdir(cachedir):
+        os.mkdir(cachedir)
+
+    jsoncontent, webcontent = preparefile(filepath, True)
+    if use_cache:
+        text = jsoncontent.get("url", "")
+        if len(text) == 0:
+            text = makerequest(url)
+            storecache(jsoncontent, url, text, webcontent)
+    else:
+        text = makerequest(url)
+        storecache(jsoncontent, url, text, webcontent)
+
     tree = html_tree.HtmlTree(text)
     try:
         tree.generatetree()
@@ -62,7 +78,6 @@ def main(url, use_cache, keyword = "officialDocuments"):
     except RecursionError:
         print(f"stop recursion at level {len(tree)}")
 
-    mongodriver = MongoDriver(database=os.environ.get("DATABASE", None))
     data = {
             "url": url,
             "originaltext": text,
@@ -70,7 +85,7 @@ def main(url, use_cache, keyword = "officialDocuments"):
             "resultree": json.dumps(tree.serialize()),
             "date": datetime.datetime.now()
             }
-    mongodriver.insert([data], keyword, "url")
+    return data
 
 
 if __name__ == "__main__":
