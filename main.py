@@ -51,23 +51,22 @@ def storecache(jsonobject,key, value, inode):
     inode.close()
 
 def main(url, use_cache):
-    appname = os.getenv("appname", "webscrapper")
-    version = os.getenv("version", "1.0")
-    userdirs = UserDirs(appname, version)
-    cachedir = userdirs.usercachedir
-    filepath = os.path.join(cachedir, "webscrapper.cache")
-    if not os.path.isdir(cachedir):
-        os.mkdir(cachedir)
-
-    jsoncontent, webcontent = preparefile(filepath, True)
     if use_cache:
+        appname = os.getenv("appname", "webscrapper")
+        version = os.getenv("version", "1.0")
+        userdirs = UserDirs(appname, version)
+        cachedir = userdirs.usercachedir
+        filepath = os.path.join(cachedir, "webscrapper.cache")
+        if not os.path.isdir(cachedir):
+            os.mkdir(cachedir)
+
+        jsoncontent, webcontent = preparefile(filepath, True)
         text = jsoncontent.get("url", "")
         if len(text) == 0:
             text = makerequest(url)
             storecache(jsoncontent, url, text, webcontent)
     else:
         text = makerequest(url)
-        storecache(jsoncontent, url, text, webcontent)
 
     tree = html_tree.HtmlTree(text)
     try:
